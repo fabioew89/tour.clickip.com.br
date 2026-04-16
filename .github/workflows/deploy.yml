@@ -1,0 +1,32 @@
+name: Deploy to Remote Server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "hello.sh"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy script via SCP
+        run: |
+          scp -P ${{ secrets.SSH_PORT }} hello.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/prod/hello.sh
+
+      - name: Make script executable
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x /prod/hello.sh && echo '✓ Script deployed to /prod/hello.sh'"
