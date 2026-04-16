@@ -21,10 +21,15 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy script via SCP
+      - name: Test SSH connection
         run: |
-          scp -P ${{ secrets.SSH_PORT }} hello.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/prod/hello.sh
+          ssh -p ${{ secrets.SSH_PORT }} -o ConnectTimeout=5 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo '✓ SSH connection OK'"
 
-      - name: Make script executable
+      - name: Create /prod directory and copy script
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x /prod/hello.sh && echo '✓ Script deployed to /prod/hello.sh'"
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /prod"
+          scp -v -P ${{ secrets.SSH_PORT }} hello.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/prod/hello.sh
+
+      - name: Make script executable and verify
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x /prod/hello.sh && ls -lh /prod/hello.sh && echo '✓ Script deployed successfully!'"
